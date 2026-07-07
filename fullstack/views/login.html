@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Volunteer App</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="auth-card">
+    <img src="GirlScoutsLogo.png" class="logo" alt="Girl Scouts Logo">
+
+    <h2>Welcome Back</h2>
+    <p class="page-subtitle">
+        Sign in to find and manage volunteer opportunities.
+    </p>
+    <form id="login-form">
+        <input type="email" id="email" required placeholder="Email" autocomplete="email">
+        <input type="password" id="password" required placeholder="Password" autocomplete="current-password">
+        <button type="submit" class="btn">Log In</button>
+    </form>
+    <p id="error-message" class="error-text"></p>
+</div>
+    <script src="login.js"></script>
+</body>
+</html>
