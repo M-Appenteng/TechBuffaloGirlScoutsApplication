@@ -1,155 +1,300 @@
-// 1. Initialize Supabase Client
-// Replace these placeholders with your actual keys from your Supabase Dashboard settings
+// script.js
+
+
+// Supabase setup
 const SUPABASE_URL = "https://your-project-id.supabase.co";
-const SUPABASE_ANON_KEY = "your-actual-anon-public-key";
+const SUPABASE_ANON_KEY = "your-anon-public-key";
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 2. DOM Elements Selection
-const loginForm = document.getElementById('login-form');
-const loginContainer = document.getElementById('login-container');
-const dashboardContainer = document.getElementById('dashboard-container');
-const userDisplayEmail = document.getElementById('user-display-email');
-const errorMessage = document.getElementById('error-message');
-const logoutBtn = document.getElementById('logout-btn');
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 3. Handle Login Submit Event
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault(); // Stop page refresh
-    errorMessage.textContent = ""; // Clear old errors
 
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+// Main elements from index.html
+const appViewport = document.getElementById("app-viewport");
+const mainFooter = document.getElementById("main-footer");
+const navTabs = document.querySelectorAll(".nav-tab");
 
-    // Contact Supabase to verify credentials
-    const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password
-    });
 
-    if (error) {
-        errorMessage.textContent = error.message;
-    } else {
-        // Success! Transition UI states
-        showDashboard(data.user);
-    }
-});
-
-// 4. Handle Logout Event
-logoutBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    await supabase.auth.signOut();
-    showLogin();
-});
-
-// 5. UI Layout Toggles
-function showDashboard(user) {
-    loginContainer.classList.add('hidden');
-    dashboardContainer.classList.remove('hidden');
-    // Adapt overall body layout rule for dashboard view
-    document.body.style.alignItems = "stretch";
-    
-    userDisplayEmail.textContent = `Logged in as: ${user.email}`;
-}
-
-function showLogin() {
-    dashboardContainer.classList.add('hidden');
-    loginContainer.classList.remove('hidden');
-    document.body.style.alignItems = "center";
-    loginForm.reset();
-}
-
-// Initialize Supabase (Use your actual credentials here)
-const SUPABASE_URL = "https://your-project-id.supabase.co";
-const SUPABASE_ANON_KEY = "your-actual-anon-public-key";
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-const loginContainer = document.getElementById('login-container');
-const appContainer = document.getElementById('app-container');
-const appContent = document.getElementById('app-content');
-const loginForm = document.getElementById('login-form');
-const errorMessage = document.getElementById('error-message');
-
-// --- SCREEN DEFINITIONS (Data to map out your screens) ---
-const screens = {
-    home: `
-        <h1 class="page-title">Volunteer Dashboard</h1>
-        <p>Welcome to your central portal! Choose an option from the menu below to get started or review notifications.</p>
-    `,
-    upcoming: `
-        <h1 class="page-title">Upcoming Shifts</h1>
-        <p>No shifts assigned for this week. Check back later!</p>
-    `,
-    past: `
-        <h1 class="page-title">Past History</h1>
-        <p>Thank you for your service! Here are your recorded entries.</p>
-    `,
-    account: `
-        <h1 class="page-title">My Account</h1>
-        <button id="logout-btn" class="btn" style="background:#dc2626; margin-top:2rem;">Log Out</button>
-    `
+// Demo user — no real login needed
+let currentUser = {
+ id: 1,
+ name: "Demo Volunteer",
+ email: "demo@girlscouts.org"
 };
 
-// --- AUTH STATE PERSISTENCE CHECK ---
-// Automatically check if user is already logged in when app boots up
-async function checkUserSession() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-        showApp();
-    }
-}
-checkUserSession();
 
-// Form handler for Login
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    errorMessage.textContent = "";
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-        errorMessage.textContent = error.message;
-    } else {
-        showApp();
-    }
+// Start app immediately in demo mode
+document.addEventListener("DOMContentLoaded", () => {
+ showApp();
 });
 
-// Transition to App Environment
+
+// Show main app
 function showApp() {
-    loginContainer.classList.add('hidden');
-    appContainer.classList.remove('hidden');
-    navigateToScreen('home'); // Defaults to Home Dashboard view first
+ mainFooter.classList.remove("hidden");
+ loadExploreView();
 }
 
-// --- NAVIGATION LOGIC ---
-function navigateToScreen(screenKey) {
-    // Injects the raw layout view code directly into our main block
-    appContent.innerHTML = screens[screenKey];
-    
-    // Wire up the dynamic logout button specifically if we step into the account screen
-    if (screenKey === 'account') {
-        document.getElementById('logout-btn').addEventListener('click', async () => {
-            await supabase.auth.signOut();
-            location.reload(); // Hard resets app states back to default login view safely
-        });
-    }
+
+// Explore page
+function loadExploreView() {
+ setActiveTab("views/explore.html");
+
+
+ appViewport.innerHTML = `
+   <section class="screen">
+     <h1>Explore Events</h1>
+     <p>Search by ZIP code to find available school events near you.</p>
+
+
+     <div class="search-box">
+       <input id="zip-input" type="text" placeholder="Enter ZIP code" />
+       <button id="search-btn">Search</button>
+     </div>
+
+
+     <p id="status-message"></p>
+     <div id="events-list"></div>
+   </section>
+ `;
+
+
+ document
+   .getElementById("search-btn")
+   .addEventListener("click", handleZipSearch);
 }
 
-// Add event listeners to all permanent footer navigation tabs
-document.querySelectorAll('.nav-tab').forEach(tab => {
-    tab.addEventListener('click', (e) => {
-        const targetTab = e.currentTarget;
-        
-        // Remove active blue state color from previous tab selection
-        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-        
-        // Mark current button clicked as blue/active
-        targetTab.classList.add('active');
-        
-        // Grab the screen data-target profile property and display it
-        const targetScreen = targetTab.getAttribute('data-target');
-        navigateToScreen(targetScreen);
-    });
+
+// Search unclaimed events by ZIP
+async function handleZipSearch() {
+ const zipCode = document.getElementById("zip-input").value.trim();
+ const statusMessage = document.getElementById("status-message");
+ const eventsList = document.getElementById("events-list");
+
+
+ statusMessage.textContent = "";
+ eventsList.innerHTML = "";
+
+
+ if (!zipCode) {
+   statusMessage.textContent = "Please enter a ZIP code.";
+   return;
+ }
+
+
+ statusMessage.textContent = "Loading events...";
+
+
+ const { data: events, error } = await supabaseClient
+   .from("EVENT")
+   .select("*")
+   .eq("zip_code", zipCode)
+   .is("volunteer_id", null);
+
+
+ if (error) {
+   statusMessage.textContent = error.message;
+   return;
+ }
+
+
+ if (!events || events.length === 0) {
+   statusMessage.textContent = "No available events found for this ZIP code.";
+   return;
+ }
+
+
+ statusMessage.textContent = "";
+ renderEvents(events, zipCode);
+}
+
+
+// Display event cards
+function renderEvents(events, zipCode) {
+ const eventsList = document.getElementById("events-list");
+
+
+ eventsList.innerHTML = events
+   .map(
+     (event) => `
+       <article class="event-card">
+         <h2>${event.type_of_event || "School Event"}</h2>
+         <p><strong>Date:</strong> ${event.day_of_week || ""} ${event.date_of_event || "TBD"}</p>
+         <p><strong>Time:</strong> ${event.time_of_event || "TBD"}</p>
+         <p><strong>ZIP:</strong> ${event.zip_code || zipCode}</p>
+         <p><strong>Notes:</strong> ${event.notes || "No notes provided."}</p>
+
+
+         <button class="commit-btn" data-event-id="${event.event_id}" data-zip="${zipCode}">
+           Commit
+         </button>
+       </article>
+     `
+   )
+   .join("");
+
+
+ document.querySelectorAll(".commit-btn").forEach((button) => {
+   button.addEventListener("click", handleCommit);
+ });
+}
+
+
+// Claim event
+async function handleCommit(e) {
+ const button = e.currentTarget;
+ const eventId = button.getAttribute("data-event-id");
+
+
+ button.disabled = true;
+ button.textContent = "Claiming...";
+
+
+ const volunteerId = currentUser.id;
+
+
+ const { data, error } = await supabaseClient
+   .from("EVENT")
+   .update({ volunteer_id: volunteerId })
+   .eq("event_id", eventId)
+   .is("volunteer_id", null)
+   .select();
+
+
+ if (error) {
+   alert(error.message);
+   button.disabled = false;
+   button.textContent = "Commit";
+   return;
+ }
+
+
+ if (!data || data.length === 0) {
+   alert("Sorry, this event was already claimed.");
+   button.closest(".event-card").remove();
+   return;
+ }
+
+
+ alert("Event claimed!");
+ button.closest(".event-card").remove();
+}
+
+
+// Upcoming page
+async function loadUpcomingView() {
+ setActiveTab("views/upcoming.html");
+
+
+ appViewport.innerHTML = `
+   <section class="screen">
+     <h1>Upcoming Shifts</h1>
+     <p id="status-message">Loading your claimed events...</p>
+     <div id="events-list"></div>
+   </section>
+ `;
+
+
+ const { data: events, error } = await supabaseClient
+   .from("EVENT")
+   .select("*")
+   .eq("volunteer_id", currentUser.id);
+
+
+ const statusMessage = document.getElementById("status-message");
+ const eventsList = document.getElementById("events-list");
+
+
+ if (error) {
+   statusMessage.textContent = error.message;
+   return;
+ }
+
+
+ if (!events || events.length === 0) {
+   statusMessage.textContent = "You have not claimed any events yet.";
+   return;
+ }
+
+
+ statusMessage.textContent = "";
+
+
+ eventsList.innerHTML = events
+   .map(
+     (event) => `
+       <article class="event-card">
+         <h2>${event.type_of_event || "School Event"}</h2>
+         <p><strong>Date:</strong> ${event.day_of_week || ""} ${event.date_of_event || "TBD"}</p>
+         <p><strong>Time:</strong> ${event.time_of_event || "TBD"}</p>
+         <p><strong>ZIP:</strong> ${event.zip_code || "N/A"}</p>
+         <p><strong>Notes:</strong> ${event.notes || "No notes provided."}</p>
+       </article>
+     `
+   )
+   .join("");
+}
+
+
+// Past page placeholder
+function loadPastView() {
+ setActiveTab("views/past.html");
+
+
+ appViewport.innerHTML = `
+   <section class="screen">
+     <h1>Past Events</h1>
+     <p>Past volunteer history will appear here.</p>
+   </section>
+ `;
+}
+
+
+// Account page
+function loadAccountView() {
+ setActiveTab("views/account.html");
+
+
+ appViewport.innerHTML = `
+   <section class="screen">
+     <h1>Account</h1>
+     <p><strong>Name:</strong> ${currentUser.name}</p>
+     <p><strong>Email:</strong> ${currentUser.email}</p>
+     <p><strong>Volunteer ID:</strong> ${currentUser.id}</p>
+     <button id="logout-btn">Restart Demo</button>
+   </section>
+ `;
+
+
+ document.getElementById("logout-btn").addEventListener("click", () => {
+   location.reload();
+ });
+}
+
+
+// Footer navigation
+navTabs.forEach((tab) => {
+ tab.addEventListener("click", () => {
+   const view = tab.getAttribute("data-view");
+
+
+   if (view === "views/explore.html") {
+     loadExploreView();
+   } else if (view === "views/upcoming.html") {
+     loadUpcomingView();
+   } else if (view === "views/past.html") {
+     loadPastView();
+   } else if (view === "views/account.html") {
+     loadAccountView();
+   }
+ });
 });
+
+
+// Active tab styling
+function setActiveTab(view) {
+ navTabs.forEach((tab) => {
+   tab.classList.toggle("active", tab.getAttribute("data-view") === view);
+ });
+}
+
