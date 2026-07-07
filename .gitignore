@@ -1,5 +1,7 @@
 node_modules/
 .env
 dist/
+dev-dist/
 build/
 www/
+.DS_Store
