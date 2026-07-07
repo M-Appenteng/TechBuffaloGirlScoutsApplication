@@ -250,3 +250,9 @@ body {
     font-size: 0.9rem;
     color: #6b7280;
 }
+
+.logo {
+    width: 120px;
+    display: block;
+    margin: 0 auto 1.5rem;
+}
